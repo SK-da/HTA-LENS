@@ -1,33 +1,49 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 @import "tailwindcss";
 
 @theme {
-  --font-display: "DM Serif Display", Georgia, serif;
-  --font-sans: "Outfit", sans-serif;
-  --font-mono: "DM Mono", monospace;
+  --font-display: "Inter", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 
-  --color-bg: #0d0f14;
-  --color-bg2: #13161e;
-  --color-bg3: #1a1e2a;
-  --color-bg4: #222636;
-  --color-surface: #1e2232;
-  --color-accent: #4f7cff;
-  --color-accent2: #7c9fff;
-  --color-teal: #2dd4bf;
-  --color-teal2: #0d9488;
-  --color-amber: #f59e0b;
-  --color-amber2: #fbbf24;
-  --color-red: #ef4444;
-  --color-green: #22c55e;
-  --color-keep: #16a34a;
-  --color-replace: #2563eb;
-  --color-review: #d97706;
+  --color-primary-bg: #0F172A;
+  --color-secondary-bg: #1E293B;
+  --color-card-bg: #1E293B;
+  --color-border: #334155;
+  
+  --color-primary-accent: #6366F1;
+  --color-secondary-accent: #818CF8;
+  --color-highlight: #4F46E5;
+  
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+  --color-neutral: #64748B;
+  
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+
+  /* Legacy aliases for easier transition */
+  --color-bg: var(--color-primary-bg);
+  --color-bg2: var(--color-secondary-bg);
+  --color-bg3: #1E293B;
+  --color-bg4: #334155;
+  --color-surface: var(--color-card-bg);
+  --color-accent: var(--color-primary-accent);
+  --color-accent2: var(--color-secondary-accent);
+  --color-teal: var(--color-success);
+  --color-amber: var(--color-warning);
+  --color-red: var(--color-error);
+  --color-green: var(--color-success);
+  --color-keep: var(--color-success);
+  --color-replace: var(--color-primary-accent);
+  --color-review: var(--color-warning);
 }
 
 @layer base {
   body {
-    @apply bg-bg text-[#e8eaf0] font-sans text-[13px] leading-relaxed min-h-screen overflow-x-hidden;
+    @apply bg-secondary-bg text-text-primary font-sans text-[13px] leading-relaxed min-h-screen overflow-x-hidden;
   }
 }
 
@@ -36,30 +52,30 @@
 .topbar-height { height: 56px; }
 
 .glass {
-  @apply bg-bg/92 backdrop-blur-xl border-b border-white/7;
+  @apply bg-primary-bg backdrop-blur-xl border-b border-white/10;
 }
 
 .nav-item-active {
-  @apply bg-accent/10 text-accent2 border-l-2 border-accent font-medium;
+  @apply bg-primary-accent/10 text-primary-accent border-l-4 border-primary-accent font-semibold;
 }
 
 .stat-card-before {
-  @apply relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px];
+  @apply relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px];
 }
 
 .confidence-bar {
-  @apply w-[60px] h-1 bg-bg4 rounded-full overflow-hidden;
+  @apply w-[60px] h-1.5 bg-gray-100 rounded-full overflow-hidden;
 }
 
 .drawer-shadow {
-  box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+  box-shadow: -10px 0 30px rgba(0,0,0,0.1);
 }
 
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #F9FAFB; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #E0E3EB; border-radius: 10px; }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 3px; }
