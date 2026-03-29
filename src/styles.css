@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "DM Serif Display", Georgia, serif;
+  --font-sans: "Outfit", sans-serif;
+  --font-mono: "DM Mono", monospace;
+
+  --color-bg: #0d0f14;
+  --color-bg2: #13161e;
+  --color-bg3: #1a1e2a;
+  --color-bg4: #222636;
+  --color-surface: #1e2232;
+  --color-accent: #4f7cff;
+  --color-accent2: #7c9fff;
+  --color-teal: #2dd4bf;
+  --color-teal2: #0d9488;
+  --color-amber: #f59e0b;
+  --color-amber2: #fbbf24;
+  --color-red: #ef4444;
+  --color-green: #22c55e;
+  --color-keep: #16a34a;
+  --color-replace: #2563eb;
+  --color-review: #d97706;
+}
+
+@layer base {
+  body {
+    @apply bg-bg text-[#e8eaf0] font-sans text-[13px] leading-relaxed min-h-screen overflow-x-hidden;
+  }
+}
+
+/* Custom Utilities from Mockup */
+.sidebar-width { width: 220px; }
+.topbar-height { height: 56px; }
+
+.glass {
+  @apply bg-bg/92 backdrop-blur-xl border-b border-white/7;
+}
+
+.nav-item-active {
+  @apply bg-accent/10 text-accent2 border-l-2 border-accent font-medium;
+}
+
+.stat-card-before {
+  @apply relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px];
+}
+
+.confidence-bar {
+  @apply w-[60px] h-1 bg-bg4 rounded-full overflow-hidden;
+}
+
+.drawer-shadow {
+  box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
