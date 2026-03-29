@@ -56,6 +56,7 @@ export class App {
   
   // Prompt Editor State
   promptText = signal<string>('');
+  activeVersion = signal<string>('v3');
 
   // Input State for Validation
   documentUrl = signal<string>('');
@@ -237,6 +238,11 @@ export class App {
     this.activeField.set(field);
     this.updatePrompt();
     this.testResult.set(null);
+  }
+
+  selectVersion(ver: string) {
+    this.activeVersion.set(ver);
+    this.showNotification(`Loaded prompt ${ver}`);
   }
 
   runPromptTest() {
