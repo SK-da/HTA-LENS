@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, signal, computed } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
+import { GoogleGenAI } from "@google/genai";
 import { 
   MARKETS, FIELD_GROUPS, COMP_DATA, AUDIT_DATA, JOBS_DATA, SUBMISSIONS_DATA, PROMPTS, SNIPPETS,
   Market, FieldGroup, ComparisonRow, AuditEntry, Job, Submission
@@ -26,6 +27,8 @@ interface ExtractionResult {
   styleUrl: './app.css',
 })
 export class App {
+  private ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
   // Navigation State
   activeTab = signal<string>('overview');
   
@@ -60,6 +63,7 @@ export class App {
 
   // Input State for Validation
   documentUrl = signal<string>('');
+  documentText = signal<string>('');
   assessedPopulation = signal<string>('');
   isExtracting = signal<boolean>(false);
   extractionResults = signal<ExtractionResult[] | null>(null);
@@ -90,7 +94,7 @@ export class App {
     return PROMPTS['Default'][fieldName] || `Extract the "${fieldName}" field from the HTA document.\n\nProvide a concise, accurate value based on the document content.\n\n{{DOCUMENT_TEXT}}`;
   }
 
-  private updatePrompt() {
+  public updatePrompt() {
     let prompt = this.getPrompt(this.activeMarket().name, this.activeField());
     
     // Include Assessed Population constraint if provided
@@ -103,6 +107,13 @@ export class App {
     
     if (!prompt.includes("ONLY in English")) {
       prompt += englishRequirement;
+    }
+    
+    // Replace placeholder with actual text if available
+    if (this.documentText()) {
+      prompt = prompt.replace('{{DOCUMENT_TEXT}}', `DOCUMENT CONTENT:\n${this.documentText()}`);
+    } else {
+      prompt = prompt.replace('{{DOCUMENT_TEXT}}', '(No document text provided yet)');
     }
     
     this.promptText.set(prompt);
@@ -245,22 +256,42 @@ export class App {
     this.showNotification(`Loaded prompt ${ver}`);
   }
 
-  runPromptTest() {
+  async runPromptTest() {
+    if (!this.documentText()) {
+      this.showNotification('⚠ Please provide document text to test the prompt');
+      return;
+    }
+
     this.isTesting.set(true);
     this.testResult.set(null);
-    setTimeout(() => {
-      this.isTesting.set(false);
-      this.testResult.set({
-        value: 'Recommended (with restrictions)',
-        snippet: `"The committee <mark style="background:rgba(79,124,255,0.25);color:var(--accent2);border-radius:2px">recommends pembrolizumab</mark>, within its marketing authorisation, as an option for treating locally advanced or metastatic urothelial carcinoma in adults..."`,
-        confidence: 89
+    
+    try {
+      const response = await this.ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: this.promptText(),
       });
-    }, 1200);
+      
+      if (!response.text) throw new Error('No response text from Gemini');
+
+      this.testResult.set({
+        value: response.text,
+        snippet: `Extracted from document content using Gemini AI.`,
+        confidence: 95
+      });
+      this.showNotification('✓ Prompt test successful');
+    } catch (error: unknown) {
+      console.error('Test Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      this.showNotification(`Error: ${errorMessage}`);
+    } finally {
+      this.isTesting.set(false);
+    }
   }
 
   openDrawer(row: ComparisonRow) {
     this.selectedRow.set(row);
     this.activeField.set(row.field);
+    this.updatePrompt();
     this.drawerOpen.set(true);
   }
 
@@ -288,9 +319,9 @@ export class App {
     this.showNotification('📊 Bulk upload triggered — mapping columns...');
   }
 
-  startSingleValidation() {
-    if (!this.documentUrl()) {
-      this.showNotification('⚠ Please provide a document URL');
+  async startSingleValidation() {
+    if (!this.documentText()) {
+      this.showNotification('⚠ Please provide document text for extraction');
       return;
     }
     
@@ -301,31 +332,55 @@ export class App {
     const pop = this.assessedPopulation() || 'General Population';
     this.showNotification(`▶ Extracting ${market} data for: ${pop}`);
     
-    // Simulate extraction
-    setTimeout(() => {
-      this.isExtracting.set(false);
-      
+    try {
       const fields = this.activeMarketFields();
-      const results: ExtractionResult[] = fields.map(field => {
-        // Mock some values based on field name
-        let value = `[AI Generated] Data for ${field} in ${market}`;
+      const results: ExtractionResult[] = [];
+      
+      const extractionPrompt = `
+        You are an expert HTA data extractor. 
+        Extract the following fields from the provided document text for the market: ${market}.
+        Population of interest: ${pop}.
         
-        // Specific mock values for better demo
-        if (field === 'Brand Name') value = 'Keytruda';
-        if (field === 'INN Name') value = 'pembrolizumab';
-        if (field === 'Manufacturer') value = 'Merck Sharp & Dohme';
-        if (field === 'Assessment outcome') value = 'Recommended';
-        if (field === 'Date of Assessment') value = new Date().toLocaleDateString();
-        if (field === 'Assessed population') value = pop;
-        if (field === 'Price of brand') value = '£2,630 per 100 mg vial';
-        if (field === 'ICER estimates/ICUR estimates/ Cost per QALY') value = '£25,000 - £30,000 per QALY';
+        FIELDS TO EXTRACT:
+        ${fields.join(', ')}
         
-        return { field, value };
+        DOCUMENT TEXT:
+        ${this.documentText()}
+        
+        OUTPUT FORMAT:
+        Provide a JSON object where keys are the field names and values are the extracted strings. 
+        If a field is not found, use "Not found".
+        Return ONLY the JSON object.
+      `;
+
+      const response = await this.ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: extractionPrompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+      
+      if (!response.text) throw new Error('No response text from Gemini');
+
+      const extractedData = JSON.parse(response.text.trim());
+      
+      fields.forEach(field => {
+        results.push({
+          field,
+          value: extractedData[field] || 'Not found'
+        });
       });
 
       this.extractionResults.set(results);
       this.showNotification('✓ Extraction complete');
-    }, 2500);
+    } catch (error: unknown) {
+      console.error('Extraction Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      this.showNotification(`Error: ${errorMessage}`);
+    } finally {
+      this.isExtracting.set(false);
+    }
   }
 
   exportExtractionResults() {

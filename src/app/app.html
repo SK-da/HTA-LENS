@@ -469,7 +469,9 @@
         <div class="bg-surface border border-white/7 rounded-xl overflow-hidden flex flex-col">
           <div class="bg-bg3 px-4 py-3.5 border-b border-white/7 text-[12px] font-semibold text-muted2 uppercase tracking-wider">Test Prompt</div>
           <div class="p-3.5 flex-1 flex flex-col gap-2.5">
-            <input class="w-full bg-bg2 border border-white/12 rounded-lg px-3 py-2 text-[#e8eaf0] text-[12px] outline-none focus:border-accent" type="text" placeholder="Paste NICE URL or text...">
+            <textarea class="w-full bg-bg2 border border-white/12 rounded-lg px-3 py-2 text-[#e8eaf0] text-[12px] outline-none focus:border-accent resize-none h-[120px]" 
+                      placeholder="Paste document text here for testing..."
+                      [ngModel]="documentText()" (ngModelChange)="documentText.set($event); updatePrompt()"></textarea>
             <button class="bg-accent text-white px-3.5 py-1.5 rounded-lg text-[12px] font-medium hover:bg-accent2 transition-all w-full flex justify-center" (click)="runPromptTest()">
               @if (isTesting()) {
                 <div class="flex gap-1">
@@ -578,12 +580,21 @@
                 </div>
                 
                 <div>
-                  <label for="docUrl" class="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">Document URL</label>
+                  <label for="docUrl" class="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">Document URL (Optional)</label>
                   <div class="relative">
                     <mat-icon class="absolute left-3 top-1/2 -translate-y-1/2 text-muted text-[18px]">link</mat-icon>
                     <input id="docUrl" class="w-full bg-bg2 border border-white/12 rounded-lg pl-10 pr-3 py-2.5 text-[#e8eaf0] text-[13px] outline-none focus:border-accent transition-all" 
                            type="text" placeholder="https://www.nice.org.uk/guidance/ta691"
                            [ngModel]="documentUrl()" (ngModelChange)="documentUrl.set($event)">
+                  </div>
+                </div>
+
+                <div>
+                  <label for="docText" class="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-2">Document Text (Required for Extraction)</label>
+                  <div class="relative">
+                    <textarea id="docText" class="w-full bg-bg2 border border-white/12 rounded-lg px-3 py-2.5 text-[#e8eaf0] text-[13px] outline-none focus:border-accent transition-all min-h-[150px] resize-y" 
+                           placeholder="Paste the HTA document text here..."
+                           [ngModel]="documentText()" (ngModelChange)="documentText.set($event); updatePrompt()"></textarea>
                   </div>
                 </div>
 

@@ -5,11 +5,15 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import cors from 'cors';
 import {join} from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
+app.use(cors());
+app.use(express.json());
+
 const angularApp = new AngularNodeAppEngine();
 
 /**
