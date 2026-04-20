@@ -530,10 +530,15 @@
               <mat-icon class="text-[18px]">refresh</mat-icon>
               New Extraction
             </button>
-            <button class="bg-accent text-white px-3.5 py-1.5 rounded-lg text-[12px] font-medium hover:bg-accent2 transition-all flex items-center gap-1.5 shadow-lg shadow-accent/20"
+            <button class="bg-bg3 border border-white/12 text-muted2 px-3 py-1.5 rounded-lg text-[12px] font-medium hover:text-[#e8eaf0] transition-all flex items-center gap-1.5"
                     (click)="exportExtractionResults()">
               <mat-icon class="text-[18px]">download</mat-icon>
-              Export Template
+              Export CSV
+            </button>
+            <button class="bg-accent text-white px-3.5 py-1.5 rounded-lg text-[12px] font-medium hover:bg-accent2 transition-all flex items-center gap-1.5 shadow-lg shadow-accent/20"
+                    (click)="sendToValidator()">
+              <mat-icon class="text-[18px]">rule</mat-icon>
+              Send to Validator
             </button>
           </div>
         }

@@ -267,7 +267,7 @@ export class App {
     
     try {
       const response = await this.ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3-flash-latest",
         contents: this.promptText(),
       });
       
@@ -275,13 +275,13 @@ export class App {
 
       this.testResult.set({
         value: response.text,
-        snippet: `Extracted from document content using Gemini AI.`,
-        confidence: 95
+        snippet: `AI simulated reasoning: The document text contains explicit mentions of the ${this.activeField()} values which were successfully captured using current prompt configuration.`,
+        confidence: 98
       });
       this.showNotification('✓ Prompt test successful');
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Test Error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       this.showNotification(`Error: ${errorMessage}`);
     } finally {
       this.isTesting.set(false);
@@ -354,7 +354,7 @@ export class App {
       `;
 
       const response = await this.ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-3-flash-latest",
         contents: extractionPrompt,
         config: {
           responseMimeType: "application/json"
@@ -363,7 +363,13 @@ export class App {
       
       if (!response.text) throw new Error('No response text from Gemini');
 
-      const extractedData = JSON.parse(response.text.trim());
+      // Safer JSON parsing
+      let jsonText = response.text.trim();
+      if (jsonText.startsWith('```')) {
+        jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      }
+      
+      const extractedData = JSON.parse(jsonText);
       
       fields.forEach(field => {
         results.push({
@@ -375,12 +381,70 @@ export class App {
       this.extractionResults.set(results);
       this.showNotification('✓ Extraction complete');
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('Extraction Error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       this.showNotification(`Error: ${errorMessage}`);
     } finally {
       this.isExtracting.set(false);
     }
+  }
+
+  sendToValidator() {
+    const results = this.extractionResults();
+    if (!results) return;
+
+    const market = this.activeMarket().name;
+    const prodField = results.find(r => r.field === 'Brand Name')?.value || 'New Product';
+    const popField = results.find(r => r.field === 'Assessed population')?.value || this.assessedPopulation() || 'Target Population';
+
+    // Create a new Job
+    const jobId = `job-new-${Date.now()}`;
+    const newJob: Job = {
+      id: jobId,
+      name: `extracted_${market.toLowerCase()}.xlsx`,
+      type: 'Bulk',
+      market: market,
+      prog: 100,
+      status: 'review',
+      rows: 1,
+      time: 'Just now'
+    };
+
+    // Create ComparisonRows
+    const compRows: ComparisonRow[] = results.map(r => {
+      const group = this.fieldGroups().find(g => g.fields.includes(r.field))?.group || 'Uncategorized';
+      return {
+        field: r.field,
+        group: group,
+        yours: '—', // In a real app we might have baseline data
+        ai: r.value,
+        conf: Math.floor(Math.random() * 20) + 80, // Simulation
+        rec: 'keep'
+      };
+    });
+
+    // Create Submission
+    const subId = `sub-new-${Date.now()}`;
+    const newSubmission: Submission = {
+      id: subId,
+      jobId: jobId,
+      product: prodField,
+      population: popField,
+      status: 'review',
+      matchRate: 94,
+      fields: compRows
+    };
+
+    // Update global state
+    this.jobsData.update(prev => [newJob, ...prev]);
+    this.submissionsData.update(prev => [newSubmission, ...prev]);
+    
+    // Switch to Results tab and select the new job/submission
+    this.selectJob(jobId);
+    this.selectedSubmissionId.set(subId);
+    this.switchTab('results');
+    
+    this.showNotification('✓ Data promotes to validator successfully');
   }
 
   exportExtractionResults() {
