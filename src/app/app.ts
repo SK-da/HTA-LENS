@@ -27,7 +27,16 @@ interface ExtractionResult {
   styleUrl: './app.css',
 })
 export class App {
-  private ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+  private _ai: GoogleGenAI | null = null;
+  private get ai(): GoogleGenAI {
+    if (!this._ai) {
+      if (typeof GEMINI_API_KEY === 'undefined' || !GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY is not defined. Please set it in your environment/secrets.');
+      }
+      this._ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+    }
+    return this._ai;
+  }
 
   // Navigation State
   activeTab = signal<string>('overview');
@@ -267,7 +276,7 @@ export class App {
     
     try {
       const response = await this.ai.models.generateContent({
-        model: "gemini-3-flash-latest",
+        model: "gemini-flash-latest",
         contents: this.promptText(),
       });
       
@@ -332,12 +341,18 @@ export class App {
     const pop = this.assessedPopulation() || 'General Population';
     this.showNotification(`▶ Extracting ${market} data for: ${pop}`);
     
+    console.log(`[HTA Extractor] Starting extraction for ${market}...`);
+    
     try {
       const fields = this.activeMarketFields();
+      if (!fields || fields.length === 0) {
+        throw new Error('No fields defined for this market to extract.');
+      }
+
       const results: ExtractionResult[] = [];
       
       const extractionPrompt = `
-        You are an expert HTA data extractor. 
+        You are an expert Health Technology Assessment (HTA) data extractor. 
         Extract the following fields from the provided document text for the market: ${market}.
         Population of interest: ${pop}.
         
@@ -348,28 +363,44 @@ export class App {
         ${this.documentText()}
         
         OUTPUT FORMAT:
-        Provide a JSON object where keys are the field names and values are the extracted strings. 
-        If a field is not found, use "Not found".
-        Return ONLY the JSON object.
+        Provide a JSON object where keys are the field names exactly as listed above, and values are the extracted strings. 
+        If a field is not found or cannot be determined, use "Not found".
+        Return ONLY the raw JSON object. Do not include markdown formatting or extra text.
       `;
 
+      console.log('[HTA Extractor] Sending prompt to Gemini...', { fieldCount: fields.length });
+
       const response = await this.ai.models.generateContent({
-        model: "gemini-3-flash-latest",
+        model: "gemini-flash-latest",
         contents: extractionPrompt,
         config: {
           responseMimeType: "application/json"
         }
       });
       
-      if (!response.text) throw new Error('No response text from Gemini');
+      const text = response.text;
+      if (!text) {
+        throw new Error('No response text received from Gemini AI.');
+      }
 
-      // Safer JSON parsing
-      let jsonText = response.text.trim();
-      if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
+      console.log('[HTA Extractor] Response received:', text.substring(0, 200) + '...');
+
+      // Robust JSON extraction
+      let jsonText = text.trim();
+      const firstBrace = jsonText.indexOf('{');
+      const lastBrace = jsonText.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        jsonText = jsonText.substring(firstBrace, lastBrace + 1);
       }
       
-      const extractedData = JSON.parse(jsonText);
+      let extractedData: Record<string, string>;
+      try {
+        extractedData = JSON.parse(jsonText);
+      } catch (parseError) {
+        console.error('[HTA Extractor] JSON Parse failed. Text:', jsonText);
+        throw new Error('Failed to parse AI response as JSON logic. Please try a cleaner document text.');
+      }
       
       fields.forEach(field => {
         results.push({
@@ -378,12 +409,16 @@ export class App {
         });
       });
 
+      console.log(`[HTA Extractor] Successfully mapped ${results.length} fields.`);
       this.extractionResults.set(results);
       this.showNotification('✓ Extraction complete');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Extraction Error:', error);
+      console.error('[HTA Extractor Error]:', error);
       this.showNotification(`Error: ${errorMessage}`);
+      
+      // Fallback for demo purposes if it keeps failing with real keys
+      // this.extractionResults.set(this.getMockResults()); 
     } finally {
       this.isExtracting.set(false);
     }
