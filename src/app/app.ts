@@ -276,7 +276,7 @@ export class App {
     
     try {
       const response = await this.ai.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-3-flash-preview",
         contents: this.promptText(),
       });
       
@@ -371,7 +371,7 @@ export class App {
       console.log('[HTA Extractor] Sending prompt to Gemini...', { fieldCount: fields.length });
 
       const response = await this.ai.models.generateContent({
-        model: "gemini-flash-latest",
+        model: "gemini-3-flash-preview",
         contents: extractionPrompt,
         config: {
           responseMimeType: "application/json"
