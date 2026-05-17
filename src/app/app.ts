@@ -118,11 +118,13 @@ export class App {
       prompt += englishRequirement;
     }
     
-    // Replace placeholder with actual text if available
+    // Replace placeholder with actual context
     if (this.documentText()) {
       prompt = prompt.replace('{{DOCUMENT_TEXT}}', `DOCUMENT CONTENT:\n${this.documentText()}`);
+    } else if (this.documentUrl()) {
+      prompt = prompt.replace('{{DOCUMENT_TEXT}}', `DOCUMENT URL (Browse this link): ${this.documentUrl()}`);
     } else {
-      prompt = prompt.replace('{{DOCUMENT_TEXT}}', '(No document text provided yet)');
+      prompt = prompt.replace('{{DOCUMENT_TEXT}}', '(No document context provided yet)');
     }
     
     this.promptText.set(prompt);
@@ -329,8 +331,8 @@ export class App {
   }
 
   async startSingleValidation() {
-    if (!this.documentText()) {
-      this.showNotification('⚠ Please provide document text for extraction');
+    if (!this.documentUrl()) {
+      this.showNotification('⚠ Please provide a Document URL for extraction');
       return;
     }
     
@@ -353,18 +355,18 @@ export class App {
       
       const extractionPrompt = `
         You are an expert Health Technology Assessment (HTA) data extractor. 
-        Extract the following fields from the provided document text for the market: ${market}.
+        Access the document at the following URL and extract the requested fields for the market: ${market}.
         Population of interest: ${pop}.
+        
+        DOCUMENT URL:
+        ${this.documentUrl()}
         
         FIELDS TO EXTRACT:
         ${fields.join(', ')}
         
-        DOCUMENT TEXT:
-        ${this.documentText()}
-        
         OUTPUT FORMAT:
         Provide a JSON object where keys are the field names exactly as listed above, and values are the extracted strings. 
-        If a field is not found or cannot be determined, use "Not found".
+        If a field is not found or cannot be determined by browsing the provided URL, use "Not found".
         Return ONLY the raw JSON object. Do not include markdown formatting or extra text.
       `;
 
@@ -374,7 +376,8 @@ export class App {
         model: "gemini-3-flash-preview",
         contents: extractionPrompt,
         config: {
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          tools: [{ googleSearch: {} }]
         }
       });
       
